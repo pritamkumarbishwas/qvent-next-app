@@ -1,10 +1,9 @@
 "use client"; // This is needed for client-side hooks
 
-import { useSearchParams } from "next/navigation"; // To get query parameters
+import React, { useEffect, useState, Suspense } from "react";
 import EventCard from "@/components/EventCard"; // EventCard component
-import React, { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation"; // To get query parameters
 
-// Fetch events from the API, filtered by artist or tag if provided
 const baseUrl = 'https://qevent-backend.labs.crio.do/events';
 
 async function fetchEvents(artist, tag) {
@@ -18,6 +17,9 @@ async function fetchEvents(artist, tag) {
 
     try {
         const response = await fetch(url);
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
         return await response.json();
     } catch (error) {
         console.error('Error fetching events:', error);
@@ -25,17 +27,19 @@ async function fetchEvents(artist, tag) {
     }
 }
 
-function Page() {
+function EventsPage() {
     const searchParams = useSearchParams(); // Get URL search params
     const artist = searchParams.get("artist"); // Extract 'artist' from the query string
     const tag = searchParams.get("tag"); // Extract 'tag' from the query string
     const [events, setEvents] = useState([]); // Local state to store events
+    const [loading, setLoading] = useState(true); // State to handle loading
 
-    // Effect hook to load events on component mount or when artist/tag changes
     useEffect(() => {
         async function loadEvents() {
+            setLoading(true); // Start loading
             const eventsData = await fetchEvents(artist, tag); // Fetch events filtered by artist or tag
             setEvents(eventsData);
+            setLoading(false); // Stop loading
         }
         loadEvents();
     }, [artist, tag]); // Re-fetch events if 'artist' or 'tag' query parameter changes
@@ -47,18 +51,29 @@ function Page() {
                 {artist ? `Events by Artist: ${artist}` : tag ? `Events Tagged: ${tag}` : "All Events"}
             </h1>
 
-            {/* Render the event cards */}
-            <div className="flex flex-wrap items-center justify-center mt-8 mb-32">
-                {events.length > 0 ? (
-                    events.map((eventData, i) => (
-                        <EventCard eventData={eventData} key={i} />
-                    ))
-                ) : (
-                    <p>No events found.</p>
-                )}
-            </div>
+            {/* Loading state */}
+            {loading ? (
+                <p className="text-center mt-8">Loading ...</p>
+            ) : (
+                <div className="flex flex-wrap items-center justify-center mt-8 mb-32">
+                    {events.length > 0 ? (
+                        events.map((eventData) => (
+                            <EventCard eventData={eventData} key={eventData.id} /> // Use unique identifier for key
+                        ))
+                    ) : (
+                        <p>No events found.</p>
+                    )}
+                </div>
+            )}
         </div>
     );
 }
 
-export default Page;
+// Exporting the component
+export default function Page() {
+    return (
+        <Suspense fallback={<div>Loading...</div>}>
+            <EventsPage />
+        </Suspense>
+    );
+}
