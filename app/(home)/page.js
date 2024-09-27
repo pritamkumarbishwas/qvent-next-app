@@ -3,7 +3,19 @@ import SwiperComponent from "@/components/SwiperComponent";
 import React from "react";
 import { dummyEvents } from "@/constants/dummyEvents";
 
-function App() {
+async function App() {
+
+  let events = [];
+
+  try {
+    const response = await fetch('https://qevent-backend.labs.crio.do/events');
+    events = await response.json();
+  } catch (error) {
+    console.error('Error fetching events:', error);
+    events = [];
+  }
+
+
   return (
     <div className="h-full">
       <SwiperComponent />
@@ -12,9 +24,9 @@ function App() {
         Explore Events
       </h1>
 
-      <div className="flex items-center justify-around mt-8 mb-32">
-        {dummyEvents.map((eventData) => (
-          <EventCard eventData={eventData} />
+      <div className="flex flex-wrap items-center justify-around mt-8 mb-32">
+        {events.map((eventData, i) => (
+          <EventCard eventData={eventData} key={i} />
         ))}
       </div>
     </div>
